@@ -10,7 +10,7 @@ version = "0.1"
 pixel_size_mm = 0.4
 half_pixel_size_mm = pixel_size_mm * 0.5
 quarter_pixel_size_mm = pixel_size_mm * 0.25
-fifth_pixel_size_mm = pixwel_size_mm * 0.2
+fifth_pixel_size_mm = pixel_size_mm * 0.2
 
 pen_up_gcode = "M8\n"
 pen_down_gcode = "M9\n"
@@ -20,59 +20,53 @@ final_gcode = "G28\n"
 pen_up = False
 backwards = False
 
-def penUP():
-    global pen_up
+def penUp(pen_up):
     gcode = ""
     if not pen_up:
         gcode = pen_up_gcode
         pen_up = True
     return gcode
 
-def penDown():
-    global pen_up
+def penDown(pen_up):
     gcode = ""
     if pen_up:
         gcode = pen_down_gcode
         pen_up = False
     return gcode
 
-def advanceY():
-    global backwards
-    gcode = penUp()
+def advanceY(backwards):
+    gcode = penUp(pen_up)
     gcode += f'G01 X0 Y{str(pixel_size_mm)} Z0\n'
     backwards = not backwards
     return gcode
 
-def advanceX(x_mm):
-    global backwards
+def advanceX(backwards, x_mm):
     gcode = " X"
     if backwards:
         gcode += "-"
     gcode += str(x_mm)
     return gcode
 
-def drawSpace():
-    global backwards
-    gcode = penUp()
+def drawSpace(backwards):
+    gcode = penUp(pen_up)
     gcode += "G00"
     gcode += advanceX(pixel_size_mm)
     gcode += " Y0 Z0\n"
     return gcode
 
-def drawPixel():
-    global backwards
-    gcode = penDown()
+def drawPixel(backwards):
+    gcode = penDown(pen_up)
     gcode += "G01"
-    gcode += advanceX(pixel_size_mm)
+    gcode += advanceX(backwards, pixel_size_mm)
     gcode += " Y0 Z0\n"
     return gcode
 
 def processPixel(pixel):
     value = pixel[0]
     if value > 0.90:
-        gcode = drawSpace()
+        gcode = drawSpace(backwards)
     else:
-        gcode = drawPixel()
+        gcode = drawPixel(backwards)
     return gcode
 
 def help():
@@ -100,7 +94,7 @@ def main():
 
     # Initialise G-Code
     gcode = initial_gcode
-    gcode += penUp()
+    gcode += penUp(pen_up)
 
     # Plot image
     reverse = False
@@ -111,11 +105,11 @@ def main():
         else:
             for x in range(width):
                 gcode += processPixel(img[y][x])
-        gcode += advanceY()
+        gcode += advanceY(backwards)
         reverse = not reverse
 
     # Finalise G-Code
-    gcode += penUp()
+    gcode += penUp(pen_up)
     gcode += final_gcode
 
     if argc > 2:
